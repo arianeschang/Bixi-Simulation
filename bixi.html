@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Animate a point along a route</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.js'></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Tajawal:400,900');
+
+        body { 
+            margin:0; padding:0; 
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #FF3B3F;
+            font-size: 48px;
+            font-weight: 900;
+            font-family: 'Tajawal', sans-serif;
+            text-align: center;
+            line-height: 90%;
+        }
+
+        .visible{
+            visibility: visible;
+            opacity: 1;
+        }
+        .hidden {
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.2s, opacity 0.2s linear;
+        }
+        .button {
+            background-color: #EFEFEF;
+            border: 2px solid #FF3B3F;
+            padding: 15px 40px 15px 40px;
+            height: 54px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 24px;
+            border-radius: 10px;
+            font-family: 'Tajawal', sans-serif;
+            color: #FF3B3F;
+        }
+        .button:hover {
+            background-color: #FF3B3F;
+            color: #CAEBF2;
+            border: 2px solid #FF3B3F;
+        }
+
+        #map { 
+            position:absolute; top:0; bottom:0; width:100%; 
+            display: "hidden";
+        }
+    </style>
+</head>
+<body>
+
+<div class = "visible" style="z-index: 1; padding-top: 10%;" id="welcome"><center>
+    <h1>Bixis on a Sunday <br> in Montreal</h1>
+    <button id = "demo" class = "button">Start</a>
+</center></div>
+<div id='map' style="z-index: -1"></div>
+
+<script>
+
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiYXJpYW5lc2NoYW5nIiwiYSI6ImNqaGIwM3VidzB0M2UzMHFwZWRtbGR6bzIifQ.PnGzkOpLBIJJEeOwWVOhLg';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v8',
+    center: [-73.587045, 45.504],
+    zoom: 12
+});
+
+
+
+var routes_sources = []
+var points_sources = []
+
+var routes = [{
+            "type": "FeatureCollection",
+            "features": [{
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[-73.5896315, 45.521150000000006], [-73.589816, 45.520946], [-73.59023, 45.52113373529412], [-73.590644, 45.521321470588234], [-73.591058, 45.52150920588235], [-73.591472, 45.52169694117647], [-73.591886, 45.52188467647059], [-73.5923, 45.52207241176471], [-73.592714, 45.52226014705882], [-73.593128, 45.52244788235294], [-73.59354200000001, 45.52263561764707], [-73.593956, 45.52282335294119], [-73.59437, 45.5230110882353], [-73.594784, 45.52319882352941], [-73.595198, 45.52338655882353], [-73.59561199999999, 45.52357429411765], [-73.596026, 45.52376202941177], [-73.59644, 45.52394976470588], [-73.59685400000001, 45.5241375], [-73.597268, 45.52432523529412]]
+
+            }
+            }]
+            }]
+
+var points = [{
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": routes[0].features[0].geometry.coordinates[0]
+                    }
+                }]
+            }]
+
+
+map.on('load', function () {
+
+    function go(i) {
+
+        map.addSource("route" + i, {
+                "type": "geojson",
+                "data": routes[i]
+            });
+        routes_sources.push(map.getSource("route" + i))
+
+
+        map.addSource("point" + i, {
+            "type": "geojson",
+            "data": points[i]
+        });
+        points_sources.push(map.getSource("point" + i))
+
+
+        map.addLayer({
+                "id": "route" + i,
+                "source": "route" + i,
+                "type": "line",
+                "paint": {
+                    "line-width": 1,
+                    "line-color": "#007cbf"
+                }
+            });
+
+        map.addLayer({
+            "id": "point" + i,
+            "source": "point" + i,
+            "type": "circle",
+            "paint": {
+                "circle-radius": 2
+            }
+        });
+
+        var counter = 0;
+
+
+        function animate() {
+            points[i].features[0].geometry.coordinates = routes[i].features[0].geometry.coordinates[counter];
+            num_coords = routes[i].features[0].geometry.coordinates.length
+            points_sources[i].setData(points[i])
+
+            // Request the next frame of animation so long the end has not been reached.
+            if (counter < num_coords - 1) {
+                requestAnimationFrame(animate);
+            }
+
+            counter = counter + 1;
+        }
+
+        // Start the animation.
+        animate(counter);   
+    }
+
+
+
+    document.getElementById("demo").onclick = function () {
+        document.getElementById("welcome").className = "hidden"
+
+        var i = 0, howManyTimes = routes.length;
+        timeout();
+
+        function timeout(){
+            setTimeout(function () {
+                console.log(i)
+                go(i);
+                i++;
+                if (i < howManyTimes) {
+                    timeout();
+                }
+            }, 1000);
+        }
+        
+        
+    }
+
+    });
+
+
+
+
+</script>
+
+</body>
+</html>
